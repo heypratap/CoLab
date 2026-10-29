@@ -2,7 +2,9 @@
 
 function BottomPanel() {
   return (
-    <div>BottomPanel</div>
+    <section className="bg-[#1e1e1e] border border-neutral-800 rounded-xl h-20 flex items-center justify-center text-sm font-medium">
+      Bottom panel
+    </section>
   )
 }
 
