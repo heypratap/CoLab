@@ -2,8 +2,8 @@
 
 function StatusBar() {
   return (
-    <footer className="bg-[#007acc] text-white rounded-xl h-10 flex items-center justify-center text-sm font-medium shadow-md">
-      Status bar
+    <footer className="bg-[#AAFF00] text-black rounded-xl h-10 flex items-center justify-center text-sm font-medium shadow-md">
+      Status Bar
     </footer>
   )
 }

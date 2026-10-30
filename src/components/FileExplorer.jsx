@@ -2,7 +2,9 @@
 
 function FileExplorer() {
   return (
-    <div className="bg-[#1e1e1e] border border-neutral-800 rounded-xl flex items-center justify-cneter p-4 text-sm font-medium text-center" >FileExplorer</div>
+    <aside className="bg-[#1e1e1e] border border-neutral-800 rounded-xl w-52 shrink-0 flex items-center justify-center p-4 text-sm font-medium text-center">
+      FileExplorer
+    </aside>
   )
 }
 

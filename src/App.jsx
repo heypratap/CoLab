@@ -5,18 +5,24 @@ import BottomPanel from "./components/BottomPanel";
 import StatusBar from "./components/StatusBar";
 import Header from "./components/Header";
 
+
 const App = () => {
   return (
-    <div className="h-screen w-screen bg-black text-gray-300 p-3 flex flex-col gap-3 font-sans selection:bg-purple-500">
-      <Header/>
-      <div className="flex-1 grid grid-cols-[auto_200px_1fr] gap-3 min-h-0">
-      <ActivitySidebar />
-      <FileExplorer />
-      <EditorWorkspace />
+    <div className="h-screen w-full bg-black text-gray-300 p-3 flex flex-col gap-3 font-sans antialiased">
+      
+      <Header />
+      <div className="flex-1 grid grid-cols-[auto_auto_1fr_auto] gap-3 min-h-0">
+        <ActivitySidebar />
+        <FileExplorer />
+        
+        <div className="flex flex-col gap-3 min-h-0">
+            <EditorWorkspace />
+            <BottomPanel />
+          </div>
       </div>
-      <BottomPanel />
+      
       <StatusBar />
-     
+
     </div>
   )
 }

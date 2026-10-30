@@ -1,9 +1,9 @@
 
 function Header() {
     return (
-        <div className="bg-[#1e1e1e] border border-neutral-800 rounded-xl h-14 flex items-center justify-center text-sm font-medium ">
-            <p className="text-white"> Header — future feature </p>
-        </div>
+        <header className="bg-[#1e1e1e] border border-neutral-800 rounded-xl h-14 flex items-center justify-center text-sm font-medium">
+      Menu Bar / Title Bar
+    </header> 
     )
 }
 
