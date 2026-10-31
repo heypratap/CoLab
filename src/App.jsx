@@ -8,8 +8,8 @@ import Header from "./components/Header";
 
 const App = () => {
   return (
-    <div className="h-screen w-full bg-black text-gray-300 p-3 flex flex-col gap-3 font-sans antialiased">
-      
+    <div className="h-screen w-full bg-black text-white p-3 flex flex-col gap-3 font-sans antialiased">
+
       <Header />
       <div className="flex-1 grid grid-cols-[auto_auto_1fr_auto] gap-3 min-h-0">
         <ActivitySidebar />
