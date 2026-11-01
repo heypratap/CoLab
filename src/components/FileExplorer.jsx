@@ -1,27 +1,33 @@
 
 import { useState } from "react";
 import {
-  FilePlus,
-  FolderPlus,
-  Ellipsis,
-  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  FileCode,
+  FileText,
   Folder,
   FolderOpen,
-  ChevronRight,
-  ChevronDown,
-  FileCode,
-  FileText
+  FilePlus,
+  FolderPlus,
+  Trash2,
 } from "lucide-react";
 
-// CoLab project structure
-const initialFiles = [];
+const FileExplorer = ({ activeFile, onFileSelect }) => {
+  const [files, setFiles] = useState([]);
 
-function FileExplorer() {
-  const [expandedFolders, setExpandedFolders] = useState(["src"]);
-  const [files, setFiles] = useState(initialFiles);
-  const [selectedFolder, setSelectedFolder] = useState(null);
   const [projectName, setProjectName] = useState("My Project");
+  const [projectNameInput, setProjectNameInput] = useState("");
+  const [isRenamingProject, setIsRenamingProject] = useState(false);
+
   const [isProjectExpanded, setIsProjectExpanded] = useState(true);
+  const [expandedFolders, setExpandedFolders] = useState([]);
+  const [selectedFolder, setSelectedFolder] = useState(null);
+
+  const [creationType, setCreationType] = useState(null);
+  const [newItemName, setNewItemName] = useState("");
+
+  const [renamingItemId, setRenamingItemId] = useState(null);
+  const [renameInput, setRenameInput] = useState("");
 
   function toggleFolder(id) {
     setExpandedFolders((previous) =>
@@ -58,39 +64,13 @@ function FileExplorer() {
       return item;
     });
   }
-  function createFile() {
-    const fileName = prompt("Enter file name:");
 
-    if (!fileName?.trim()) return;
+  function startCreating(type) {
+    setCreationType(type);
+    setNewItemName("");
+    setIsProjectExpanded(true);
 
-    const newFile = {
-      id: crypto.randomUUID(),
-      name: fileName.trim(),
-      type: "file",
-    };
-
-    setFiles((previousFiles) =>
-      addItemToTree(previousFiles, selectedFolder, newFile)
-    );
-  }
-
-  function createFolder() {
-    const folderName = prompt("Enter folder name:");
-
-    if (!folderName?.trim()) return;
-
-    const newFolder = {
-      id: crypto.randomUUID(),
-      name: folderName.trim(),
-      type: "folder",
-      children: [],
-    };
-
-    setFiles((previousFiles) =>
-      addItemToTree(previousFiles, selectedFolder, newFolder)
-    );
-
-    if (selectedFolder) {
+    if (selectedFolder !== null) {
       setExpandedFolders((previous) =>
         previous.includes(selectedFolder)
           ? previous
@@ -99,47 +79,227 @@ function FileExplorer() {
     }
   }
 
-  function renameItem(itemId) {
-    const findItem = (items) => {
-      for (const item of items) {
-        if (item.id === itemId) return item;
+  function finishCreating() {
+    const name = newItemName.trim();
 
-        if (item.type === "folder") {
-          const found = findItem(item.children || []);
-          if (found) return found;
-        }
-      }
-
-      return null;
-    };
-
-    const item = findItem(files);
-    if (!item) return;
-
-    const newName = prompt("Enter new name:", item.name);
-
-    if (!newName?.trim() || newName.trim() === item.name) return;
-
-    function updateTree(items) {
-      return items.map((current) => {
-        if (current.id === itemId) {
-          return { ...current, name: newName.trim() };
-        }
-
-        if (current.type === "folder") {
-          return {
-            ...current,
-            children: updateTree(current.children || []),
-          };
-        }
-
-        return current;
-      });
+    if (!name || !creationType) {
+      setCreationType(null);
+      setNewItemName("");
+      return;
     }
 
-    setFiles((previousFiles) => updateTree(previousFiles));
+    const newItem = {
+      id: crypto.randomUUID(),
+      name,
+      type: creationType,
+      ...(creationType === "folder" && { children: [] }),
+      ...(creationType === "file" && { content: "" }),
+    };
+
+    setFiles((previous) =>
+      addItemToTree(previous, selectedFolder, newItem)
+    );
+
+    setCreationType(null);
+    setNewItemName("");
   }
 
+  function handleCreationKeyDown(event) {
+    if (event.key === "Enter") {
+      finishCreating();
+    }
+
+    if (event.key === "Escape") {
+      setCreationType(null);
+      setNewItemName("");
+    }
+  }
+
+  function startRenamingProject() {
+    setProjectNameInput(projectName);
+    setIsRenamingProject(true);
+  }
+
+  function finishRenamingProject() {
+    const name = projectNameInput.trim();
+
+    if (name) {
+      setProjectName(name);
+    }
+
+    setIsRenamingProject(false);
+  }
+
+  function handleProjectRenameKeyDown(event) {
+    if (event.key === "Enter") {
+      finishRenamingProject();
+    }
+
+    if (event.key === "Escape") {
+      setProjectNameInput(projectName);
+      setIsRenamingProject(false);
+    }
+  }
+
+  function startRenamingItem(item) {
+    setRenamingItemId(item.id);
+    setRenameInput(item.name);
+  }
+
+  function finishRenamingItem() {
+    const name = renameInput.trim();
+    const itemId = renamingItemId;
+
+    if (name && itemId) {
+      function updateTree(items) {
+        return items.map((item) => {
+          if (item.id === itemId) {
+            return { ...item, name };
+          }
+
+          if (item.type === "folder") {
+            return {
+              ...item,
+              children: updateTree(item.children || []),
+            };
+          }
+
+          return item;
+        });
+      }
+
+      setFiles((previous) => updateTree(previous));
+
+      if (activeFile?.id === itemId) {
+        onFileSelect({ ...activeFile, name });
+      }
+    }
+
+    setRenamingItemId(null);
+    setRenameInput("");
+  }
+
+  function handleRenameKeyDown(event) {
+    if (event.key === "Enter") {
+      finishRenamingItem();
+    }
+
+    if (event.key === "Escape") {
+      setRenamingItemId(null);
+      setRenameInput("");
+    }
+  }
+
+  function containsItem(items, targetId) {
+    return items.some(
+      (item) =>
+        item.id === targetId ||
+        (item.type === "folder" &&
+          containsItem(item.children || [], targetId))
+    );
+  }
+
+  function deleteItem(itemId) {
+    const deletedItem = findItem(files, itemId);
+
+    function removeFromTree(items) {
+      return items
+        .filter((item) => item.id !== itemId)
+        .map((item) => {
+          if (item.type === "folder") {
+            return {
+              ...item,
+              children: removeFromTree(item.children || []),
+            };
+          }
+
+          return item;
+        });
+    }
+
+    if (
+      activeFile &&
+      deletedItem &&
+      (deletedItem.id === activeFile.id ||
+        (deletedItem.type === "folder" &&
+          containsItem(deletedItem.children || [], activeFile.id)))
+    ) {
+      onFileSelect(null);
+    }
+
+    if (
+      selectedFolder === itemId ||
+      (deletedItem?.type === "folder" &&
+        containsItem(deletedItem.children || [], selectedFolder))
+    ) {
+      setSelectedFolder(null);
+    }
+
+    setFiles((previous) => removeFromTree(previous));
+
+    setExpandedFolders((previous) =>
+      previous.filter((id) => id !== itemId)
+    );
+
+    if (renamingItemId === itemId) {
+      setRenamingItemId(null);
+      setRenameInput("");
+    }
+  }
+
+  function findItem(items, id) {
+    for (const item of items) {
+      if (item.id === id) return item;
+
+      if (item.type === "folder") {
+        const found = findItem(item.children || [], id);
+        if (found) return found;
+      }
+    }
+
+    return null;
+  }
+
+
+  function renderCreationInput(parentId, level) {
+    if (
+      creationType === null ||
+      selectedFolder !== parentId
+    ) {
+      return null;
+    }
+
+    return (
+      <div
+        className="flex items-center gap-2 py-1 px-2"
+        style={{ paddingLeft: `${level * 16 + 8}px` }}
+      >
+        {creationType === "folder" ? (
+          <Folder size={16} />
+        ) : (
+          <FileCode size={16} />
+        )}
+
+        <input
+          autoFocus
+          value={newItemName}
+          onChange={(event) => setNewItemName(event.target.value)}
+          onKeyDown={handleCreationKeyDown}
+          onBlur={() => {
+            if (newItemName.trim()) {
+              finishCreating();
+            } else {
+              setCreationType(null);
+            }
+          }}
+          placeholder={
+            creationType === "file" ? "File name" : "Folder name"
+          }
+          className="w-full min-w-0 bg-transparent border border-lime-400 outline-none text-white text-xs px-1"
+        />
+      </div>
+    );
+  }
 
   function renderTree(items, level = 0) {
     return items.map((item) => {
@@ -147,43 +307,88 @@ function FileExplorer() {
       const isExpanded = expandedFolders.includes(item.id);
 
       const Icon = isFolder
-        ? isExpanded ? FolderOpen : Folder
-        : item.name.endsWith(".md") ? FileText : FileCode;
+        ? isExpanded
+          ? FolderOpen
+          : Folder
+        : item.name.endsWith(".md")
+          ? FileText
+          : FileCode;
+
+      const isSelected =
+        activeFile?.id === item.id ||
+        selectedFolder === item.id;
+
+      const isRenaming = renamingItemId === item.id;
 
       return (
         <div key={item.id}>
-          <button title="Double-click to rename"
-            onClick={() => {
-              if (isFolder) {
-                setSelectedFolder(item.id);
-                toggleFolder(item.id);
-              }
-            }}
-            className={`w-full flex items-center gap-2 py-1 px-2 rounded text-left
-              ${selectedFolder === item.id
-                ? "bg-neutral-700 text-white"
-                : "text-gray-400 hover:bg-neutral-800 hover:text-white"
+          <div
+            className={`group flex items-center rounded ${isSelected
+              ? "bg-neutral-700 text-white"
+              : "text-gray-400 hover:bg-neutral-800 hover:text-white"
               }`}
-            style={{ paddingLeft: `${level * 16 + 8}px` }}
+            style={{ paddingLeft: `${level * 16}px` }}
           >
-            {isFolder ? (
-              isExpanded
-                ? <ChevronDown size={14} />
-                : <ChevronRight size={14} />
+            {isRenaming ? (
+              <>
+                <span className="w-3.5 shrink-0" />
+                <Icon size={16} />
+
+                <input
+                  autoFocus
+                  value={renameInput}
+                  onChange={(event) =>
+                    setRenameInput(event.target.value)
+                  }
+                  onKeyDown={handleRenameKeyDown}
+                  onBlur={finishRenamingItem}
+                  onClick={(event) => event.stopPropagation()}
+                  className="flex-1 min-w-0 bg-transparent border border-lime-400 outline-none text-white text-xs px-1"
+                />
+              </>
             ) : (
-              <span className="w-3.5" />
+              <button
+                onClick={() => {
+                  if (isFolder) {
+                    setSelectedFolder(item.id);
+                    toggleFolder(item.id);
+                  } else {
+                    setSelectedFolder(null);
+                    onFileSelect(item);
+                  }
+                }}
+                onDoubleClick={() => startRenamingItem(item)}
+                title="Double-click to rename"
+                className="flex-1 min-w-0 flex items-center gap-2 py-1 px-2 text-left text-xs"
+              >
+                {isFolder ? (
+                  isExpanded ? (
+                    <ChevronDown size={14} />
+                  ) : (
+                    <ChevronRight size={14} />
+                  )
+                ) : (
+                  <span className="w-3.5 shrink-0" />
+                )}
+
+                <Icon size={16} />
+                <span className="truncate">{item.name}</span>
+              </button>
             )}
 
-            <Icon size={16} />
-            onDoubleClick={(event) => {
-              event.stopPropagation();
-              renameItem(item.id);
-            }}
-          </button>
+            <button
+              onClick={() => deleteItem(item.id)}
+              title="Delete"
+              className="hidden group-hover:block p-1 mr-1 hover:text-red-400"
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
 
-          {isFolder && isExpanded && item.children?.length > 0 && (
+          {isFolder && isExpanded && (
             <div>
-              {renderTree(item.children, level + 1)}
+              {renderCreationInput(item.id, level + 1)}
+              {renderTree(item.children || [], level + 1)}
             </div>
           )}
         </div>
@@ -192,33 +397,16 @@ function FileExplorer() {
   }
 
   return (
-    <aside className="bg-[#1e1e1e] border-r border-neutral-800 w-60 shrink-0 p-3 text-sm flex flex-col min-h-0 overflow-hidden">
+    <aside className="w-full h-full min-h-0 bg-[#181818] border border-neutral-800 rounded-lg flex flex-col text-gray-300">
 
-      {/* Explorer toolbar */}
-      <div className="flex items-center justify-between mb-5">
-        <span className="font-semibold tracking-wide">EXPLORER</span>
 
-        <div className="flex items-center gap-2 text-gray-400">
-          <button onClick={createFile} title="New File" className="hover:text-white">
-            <FilePlus size={15} />
-          </button>
-          <button onClick={createFolder} title="New Folder" className="hover:text-white">
-            <FolderPlus size={15} />
-          </button>
-          <button title="Refresh" className="hover:text-white">
-            <RefreshCw size={15} />
-          </button>
-          <button title="More Actions" className="hover:text-white">
-            <Ellipsis size={15} />
-          </button>
-        </div>
-      </div>
+      <div className="flex items-center gap-1 px-2 py-2">
 
-      {/* Project root */}
-      <div>
         <button
-          onClick={() => setIsProjectExpanded((previous) => !previous)}
-          className="w-full flex items-center gap-2 font-semibold mb-2 text-left hover:text-white"
+          onClick={() =>
+            setIsProjectExpanded((previous) => !previous)
+          }
+          className="flex items-center gap-2 flex-1 min-w-0 text-left hover:text-white"
         >
           {isProjectExpanded ? (
             <ChevronDown size={14} />
@@ -231,24 +419,62 @@ function FileExplorer() {
           ) : (
             <Folder size={16} />
           )}
-
-          <span>{projectName}</span>
         </button>
 
-        {isProjectExpanded && (
-          <div>
-            {files.length === 0 ? (
-              <p className="text-xs text-gray-500 px-6 py-2">
-              </p>
-            ) : (
-              renderTree(files)
-            )}
-          </div>
+        {isRenamingProject ? (
+          <input
+            autoFocus
+            value={projectNameInput}
+            onChange={(event) =>
+              setProjectNameInput(event.target.value)
+            }
+            onKeyDown={handleProjectRenameKeyDown}
+            onBlur={finishRenamingProject}
+            className="flex-1 min-w-0 bg-transparent border border-lime-400 outline-none text-white text-xs px-1"
+          />
+        ) : (
+          <span
+            onDoubleClick={startRenamingProject}
+            title="Double-click to rename project"
+            className="flex-1 min-w-0 text-xs font-semibold truncate cursor-pointer"
+          >
+            {projectName}
+          </span>
         )}
-      </div>
 
+        <div className="flex items-center gap-2">
+          <button
+            title="New File"
+            onClick={() => startCreating("file")}
+            className="p-1 hover:text-white hover:bg-neutral-700 rounded"
+          >
+            <FilePlus size={15} />
+          </button>
+
+          <button
+            title="New Folder"
+            onClick={() => startCreating("folder")}
+            className="p-1 hover:text-white hover:bg-neutral-700 rounded"
+          >
+            <FolderPlus size={15} />
+          </button>
+        </div>
+      </div>
+      {isProjectExpanded && (
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-hide px-2 py-1">
+          {renderCreationInput(null, 0)}
+
+          {files.length === 0 && creationType === null && (
+            <p className="text-xs text-gray-500 px-6 py-2">
+              No files or folders yet.
+            </p>
+          )}
+
+          {renderTree(files)}
+        </div>
+      )}
     </aside>
   );
-}
+};
 
 export default FileExplorer;
