@@ -1,31 +1,17 @@
-
 import { useState } from "react";
 import {
-  ChevronDown,
-  ChevronRight,
-  FileCode,
-  FileText,
-  Folder,
-  FolderOpen,
-  FilePlus,
-  FolderPlus,
-  Trash2,
+  ChevronDown, ChevronRight, FileCode, FileText, Folder, FolderOpen, FilePlus, FolderPlus, Trash2,
 } from "lucide-react";
 
-const FileExplorer = ({ activeFile, onFileSelect }) => {
-  const [files, setFiles] = useState([]);
-
+const FileExplorer = ({ files, setFiles, activeFile, onFileSelect, }) => {
   const [projectName, setProjectName] = useState("My Project");
   const [projectNameInput, setProjectNameInput] = useState("");
   const [isRenamingProject, setIsRenamingProject] = useState(false);
-
   const [isProjectExpanded, setIsProjectExpanded] = useState(true);
   const [expandedFolders, setExpandedFolders] = useState([]);
   const [selectedFolder, setSelectedFolder] = useState(null);
-
   const [creationType, setCreationType] = useState(null);
   const [newItemName, setNewItemName] = useState("");
-
   const [renamingItemId, setRenamingItemId] = useState(null);
   const [renameInput, setRenameInput] = useState("");
 
@@ -314,9 +300,7 @@ const FileExplorer = ({ activeFile, onFileSelect }) => {
           ? FileText
           : FileCode;
 
-      const isSelected =
-        activeFile?.id === item.id ||
-        selectedFolder === item.id;
+      const isSelected = activeFile?.id === item.id || selectedFolder === item.id;
 
       const isRenaming = renamingItemId === item.id;
 
