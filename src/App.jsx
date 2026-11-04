@@ -304,7 +304,7 @@ const App = () => {
   }
   return (
     <div className="h-screen w-full bg-black text-white p-3 flex flex-col gap-3 font-sans antialiased">
-      <Header />
+      <Header onGoToDashboard={() => setIsDashboardOpen(true)}/>
 
       <div className="flex-1 grid grid-cols-[48px_240px_minmax(0,1fr)] gap-3 min-h-0">
         <ActivitySidebar />
