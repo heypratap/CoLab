@@ -1,17 +1,16 @@
-
 import { useState } from "react";
-import {
-    FolderCode, Plus, Clock3, Code2, X,
-} from "lucide-react";
+import { FolderCode, Plus, Clock3, Code2, X, Trash2 } from "lucide-react";
 
 function countFiles(items = []) {
     return items.reduce((total, item) => {
         if (item.type === "file") {
             return total + 1;
         }
+
         if (item.type === "folder") {
             return total + countFiles(item.children || []);
         }
+
         return total;
     }, 0);
 }
@@ -20,9 +19,11 @@ const ProjectDashboard = ({
     projects,
     onOpenProject,
     onCreateProject,
+    onDeleteProject,
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [projectName, setProjectName] = useState("");
+    const [projectToDelete, setProjectToDelete] = useState(null);
 
     function handleCreateProject(event) {
         event.preventDefault();
@@ -58,6 +59,7 @@ const ProjectDashboard = ({
                         New Project
                     </button>
                 </header>
+
                 <section className="mb-14">
                     <p className="text-sm text-gray-500 mb-3">
                         YOUR WORKSPACE
@@ -71,15 +73,18 @@ const ProjectDashboard = ({
                         Pick up where you left off or start something new.
                     </p>
                 </section>
+
                 <section>
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="text-lg font-medium">
                             Recent Projects
                         </h2>
+
                         <span className="text-xs text-gray-500">
                             {projects.length} projects
                         </span>
                     </div>
+
                     {projects.length === 0 ? (
                         <div className="border border-dashed border-[#303030] rounded-xl p-12 text-center">
                             <FolderCode
@@ -109,6 +114,7 @@ const ProjectDashboard = ({
                                     key={project.id}
                                     className="group border border-[#262626] bg-[#111111] rounded-xl p-5 hover:border-[#444444] transition"
                                 >
+
                                     <div className="flex items-start justify-between mb-8">
                                         <div className="h-11 w-11 rounded-lg bg-[#1c1c1c] flex items-center justify-center">
                                             <FolderCode
@@ -117,17 +123,27 @@ const ProjectDashboard = ({
                                             />
                                         </div>
 
-                                        <span className="text-xs text-gray-500">
-                                            {project.updatedAt || "Recently created"}
-                                        </span>
-                                    </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-xs text-gray-500">
+                                                {project.updatedAt || "Recently created"}
+                                            </span>
 
+                                            <button
+                                                onClick={() => setProjectToDelete(project)}
+                                                className="p-2 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition"
+                                                aria-label={`Delete ${project.name}`}
+                                                title="Delete project"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
                                     <h3 className="text-base font-medium mb-2 truncate">
                                         {project.name}
                                     </h3>
-
                                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-5">
                                         <FolderCode size={14} />
+
                                         <span>
                                             {countFiles(project.files)} files
                                         </span>
@@ -135,9 +151,9 @@ const ProjectDashboard = ({
                                         <span className="text-[#444444]">•</span>
 
                                         <Clock3 size={13} />
+
                                         <span>Project</span>
                                     </div>
-
                                     <button
                                         onClick={() => onOpenProject(project.id)}
                                         className="w-full rounded-lg border border-[#303030] py-2.5 text-sm text-gray-300 hover:bg-white hover:text-black hover:border-white transition"
@@ -149,7 +165,6 @@ const ProjectDashboard = ({
                         </div>
                     )}
                 </section>
-
                 <footer className="mt-20 border-t border-[#202020] pt-6">
                     <p className="text-xs text-gray-600">
                         CoLab — Your space to build together.
@@ -159,7 +174,6 @@ const ProjectDashboard = ({
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
                     <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
-
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-lg font-semibold">
                                 Create New Project
@@ -218,6 +232,42 @@ const ProjectDashboard = ({
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {projectToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+                    <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
+                        <h2 className="text-lg font-semibold mb-3">
+                            Delete Project?
+                        </h2>
+
+                        <p className="text-sm text-gray-400 mb-6">
+                            Are you sure you want to delete{" "}
+                            <span className="text-white font-medium">
+                                {projectToDelete.name}
+                            </span>
+                            ? This action cannot be undone.
+                        </p>
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setProjectToDelete(null)}
+                                className="px-4 py-2.5 rounded-lg border border-[#303030] text-sm text-gray-300 hover:bg-[#1c1c1c] transition"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    onDeleteProject(projectToDelete.id);
+                                    setProjectToDelete(null);
+                                }}
+                                className="px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition"
+                            >
+                                Delete Project
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

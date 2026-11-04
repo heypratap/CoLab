@@ -5,20 +5,84 @@ import EditorWorkspace from "./components/EditorWorkspace";
 import BottomPanel from "./components/BottomPanel";
 import StatusBar from "./components/StatusBar";
 import Header from "./components/Header";
+import ProjectDashboard from "./components/ProjectDashboard";
 
 const App = () => {
-  const [files, setFiles] = useState(() => {
+  const [projects, setProjects] = useState(() => {
     try {
+      const savedProjects = localStorage.getItem("colab-projects");
+
+      if (savedProjects !== null) {
+        const parsedProjects = JSON.parse(savedProjects);
+
+        if (Array.isArray(parsedProjects)) {
+          return parsedProjects;
+        }
+      }
+
       const savedFiles = localStorage.getItem("colab-files");
-      return savedFiles ? JSON.parse(savedFiles) : [];
+
+      return [
+        {
+          id: "project-default",
+          name: "My Project",
+          files: savedFiles ? JSON.parse(savedFiles) : [],
+          createdAt: new Date().toISOString(),
+        },
+      ];
     } catch (error) {
-      console.error("Failed to load files:", error);
-      return [];
+      console.error("Failed to load projects:", error);
+
+      return [
+        {
+          id: "project-default",
+          name: "My Project",
+          files: [],
+          createdAt: new Date().toISOString(),
+        },
+      ];
     }
   });
+
+  const [activeProjectId, setActiveProjectId] = useState(() => {
+    return (
+      localStorage.getItem("colab-active-project") ||
+      "project-default"
+    );
+  });
+
+  const [isDashboardOpen, setIsDashboardOpen] = useState(true);
+
+  const activeProject =
+    projects.find((project) => project.id === activeProjectId) ||
+    projects[0] ||
+    null;
+
+  const files = activeProject?.files || [];
+
+  function setFiles(updater) {
+    setProjects((previous) =>
+      previous.map((project) => {
+        if (project.id !== activeProject?.id) {
+          return project;
+        }
+
+        return {
+          ...project,
+          files:
+            typeof updater === "function"
+              ? updater(project.files)
+              : updater,
+        };
+      })
+    );
+  }
+
   const [openTabs, setOpenTabs] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("colab-open-tabs")) || [];
+      return (
+        JSON.parse(localStorage.getItem("colab-open-tabs")) || []
+      );
     } catch {
       return [];
     }
@@ -28,6 +92,8 @@ const App = () => {
     return localStorage.getItem("colab-active-file") || null;
   });
 
+  const [saveStatus, setSaveStatus] = useState("Saved");
+
   function findFileById(items, id) {
     if (!id) return null;
 
@@ -36,26 +102,51 @@ const App = () => {
 
       if (item.type === "folder") {
         const found = findFileById(item.children || [], id);
+
         if (found) return found;
       }
     }
 
     return null;
   }
+
   const activeFile = findFileById(files, activeFileId);
-
   useEffect(() => {
-    try {
-      localStorage.setItem("colab-files", JSON.stringify(files));
-    } catch (error) {
-      console.error("Failed to save files:", error);
-    }
-  }, [files]);
+    setSaveStatus("Saving");
 
+    const saveTimer = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          "colab-projects",
+          JSON.stringify(projects)
+        );
+
+        if (activeProject) {
+          localStorage.setItem(
+            "colab-active-project",
+            activeProject.id
+          );
+        } else {
+          localStorage.removeItem("colab-active-project");
+        }
+
+        localStorage.removeItem("colab-files");
+
+        setSaveStatus("Saved");
+      } catch (error) {
+        console.error("Failed to save projects:", error);
+        setSaveStatus("Save failed");
+      }
+    }, 700);
+
+    return () => clearTimeout(saveTimer);
+  }, [projects, activeProject]);
   useEffect(() => {
-    localStorage.setItem("colab-open-tabs", JSON.stringify(openTabs));
+    localStorage.setItem(
+      "colab-open-tabs",
+      JSON.stringify(openTabs)
+    );
   }, [openTabs]);
-
   useEffect(() => {
     if (activeFileId) {
       localStorage.setItem("colab-active-file", activeFileId);
@@ -104,7 +195,6 @@ const App = () => {
     setActiveFileId(fileId);
   }
 
-  // Close tab
   function handleCloseTab(fileId) {
     const remainingTabs = openTabs.filter(
       (id) => id !== fileId
@@ -120,6 +210,7 @@ const App = () => {
       );
     }
   }
+
   useEffect(() => {
     const validTabs = openTabs.filter((id) =>
       findFileById(files, id)
@@ -138,6 +229,79 @@ const App = () => {
     }
   }, [files, openTabs, activeFileId]);
 
+  function handleOpenProject(projectId) {
+    const selectedProject = projects.find(
+      (project) => project.id === projectId
+    );
+
+    if (!selectedProject) {
+      console.error("Project not found:", projectId);
+      return;
+    }
+
+    setActiveProjectId(selectedProject.id);
+    setOpenTabs([]);
+    setActiveFileId(null);
+    setIsDashboardOpen(false);
+  }
+
+  function handleCreateProject(name) {
+    const newProject = {
+      id: crypto.randomUUID(),
+      name,
+      files: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setProjects((previous) => [...previous, newProject]);
+
+    setActiveProjectId(newProject.id);
+    setOpenTabs([]);
+    setActiveFileId(null);
+    setIsDashboardOpen(false);
+  }
+
+  function handleRenameProject(newName) {
+    setProjects((previous) =>
+      previous.map((project) =>
+        project.id === activeProject?.id
+          ? {
+            ...project,
+            name: newName,
+            updatedAt: new Date().toISOString(),
+          }
+          : project
+      )
+    );
+  }
+  function handleDeleteProject(projectId) {
+    const remainingProjects = projects.filter(
+      (project) => project.id !== projectId
+    );
+
+    setProjects(remainingProjects);
+
+    // If the active project is deleted, select another project
+    if (activeProjectId === projectId) {
+      const nextProject = remainingProjects[0] || null;
+
+      setActiveProjectId(nextProject?.id || null);
+
+      setOpenTabs([]);
+      setActiveFileId(null);
+    }
+  }
+  if (isDashboardOpen) {
+    return (
+      <ProjectDashboard
+        projects={projects}
+        onOpenProject={handleOpenProject}
+        onCreateProject={handleCreateProject}
+        onDeleteProject={handleDeleteProject}
+      />
+    );
+  }
   return (
     <div className="h-screen w-full bg-black text-white p-3 flex flex-col gap-3 font-sans antialiased">
       <Header />
@@ -150,6 +314,8 @@ const App = () => {
           setFiles={setFiles}
           activeFile={activeFile}
           onFileSelect={handleFileSelect}
+          projectName={activeProject?.name || "My Project"}
+          onRenameProject={handleRenameProject}
         />
 
         <div className="flex flex-col gap-3 min-h-0 min-w-0">
@@ -166,7 +332,7 @@ const App = () => {
         </div>
       </div>
 
-      <StatusBar />
+      <StatusBar saveStatus={saveStatus} />
     </div>
   );
 };
