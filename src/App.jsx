@@ -1,3 +1,5 @@
+import { checkServerHealth } from "./services/api";
+import { socket } from "./services/socket";
 import { useState, useEffect } from "react";
 import ActivitySidebar from "./components/ActivitySidebar";
 import FileExplorer from "./components/FileExplorer";
@@ -6,8 +8,38 @@ import BottomPanel from "./components/BottomPanel";
 import StatusBar from "./components/StatusBar";
 import Header from "./components/Header";
 import ProjectDashboard from "./components/ProjectDashboard";
+import SocketTest from "./components/SocketTest";
 
 const App = () => {
+
+  useEffect(() => {
+    socket.connect();
+
+    socket.on("connect", () => {
+      console.log("Connected to CoLab:", socket.id);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Disconnected from CoLab");
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("disconnect");
+      socket.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    checkServerHealth()
+      .then((data) => {
+        console.log("Backend connected:", data);
+      })
+      .catch((error) => {
+        console.error("Backend connection failed:", error);
+      });
+  }, []);
+
   const [projects, setProjects] = useState(() => {
     try {
       const savedProjects = localStorage.getItem("colab-projects");
@@ -78,21 +110,56 @@ const App = () => {
     );
   }
 
-  const [openTabs, setOpenTabs] = useState(() => {
+  const [workspaces, setWorkspaces] = useState(() => {
     try {
-      return (
-        JSON.parse(localStorage.getItem("colab-open-tabs")) || []
-      );
+      const savedWorkspaces = localStorage.getItem("colab-workspaces");
+
+      if (savedWorkspaces) {
+        return JSON.parse(savedWorkspaces);
+      }
+
+      const oldTabs =
+        JSON.parse(localStorage.getItem("colab-open-tabs")) || [];
+
+      const oldActiveFile =
+        localStorage.getItem("colab-active-file") || null;
+
+      return {
+        [activeProjectId]: {
+          openTabs: oldTabs,
+          activeFileId: oldActiveFile,
+        },
+      };
     } catch {
-      return [];
+      return {};
     }
   });
 
-  const [activeFileId, setActiveFileId] = useState(() => {
-    return localStorage.getItem("colab-active-file") || null;
-  });
+  const currentWorkspace = workspaces[activeProject?.id] || {
+    openTabs: [],
+    activeFileId: null,
+  };
+
+  const openTabs = currentWorkspace.openTabs;
+  const activeFileId = currentWorkspace.activeFileId;
 
   const [saveStatus, setSaveStatus] = useState("Saved");
+  const [output, setOutput] = useState("");
+  const [executionStatus, setExecutionStatus] = useState("idle");
+
+  function updateWorkspace(updates) {
+    if (!activeProject) return;
+
+    setWorkspaces((previous) => ({
+      ...previous,
+      [activeProject.id]: {
+        openTabs: previous[activeProject.id]?.openTabs || [],
+        activeFileId:
+          previous[activeProject.id]?.activeFileId || null,
+        ...updates,
+      },
+    }));
+  }
 
   function findFileById(items, id) {
     if (!id) return null;
@@ -111,6 +178,7 @@ const App = () => {
   }
 
   const activeFile = findFileById(files, activeFileId);
+
   useEffect(() => {
     setSaveStatus("Saving");
 
@@ -141,19 +209,20 @@ const App = () => {
 
     return () => clearTimeout(saveTimer);
   }, [projects, activeProject]);
+
   useEffect(() => {
-    localStorage.setItem(
-      "colab-open-tabs",
-      JSON.stringify(openTabs)
-    );
-  }, [openTabs]);
-  useEffect(() => {
-    if (activeFileId) {
-      localStorage.setItem("colab-active-file", activeFileId);
-    } else {
+    try {
+      localStorage.setItem(
+        "colab-workspaces",
+        JSON.stringify(workspaces)
+      );
+
+      localStorage.removeItem("colab-open-tabs");
       localStorage.removeItem("colab-active-file");
+    } catch (error) {
+      console.error("Failed to save workspaces:", error);
     }
-  }, [activeFileId]);
+  }, [workspaces]);
 
   function updateFileContent(fileId, content) {
     function updateTree(items) {
@@ -178,21 +247,20 @@ const App = () => {
 
   function handleFileSelect(file) {
     if (!file) {
-      setActiveFileId(null);
+      updateWorkspace({ activeFileId: null });
       return;
     }
 
-    setOpenTabs((previous) =>
-      previous.includes(file.id)
-        ? previous
-        : [...previous, file.id]
-    );
-
-    setActiveFileId(file.id);
+    updateWorkspace({
+      openTabs: openTabs.includes(file.id)
+        ? openTabs
+        : [...openTabs, file.id],
+      activeFileId: file.id,
+    });
   }
 
   function handleTabSelect(fileId) {
-    setActiveFileId(fileId);
+    updateWorkspace({ activeFileId: fileId });
   }
 
   function handleCloseTab(fileId) {
@@ -200,15 +268,15 @@ const App = () => {
       (id) => id !== fileId
     );
 
-    setOpenTabs(remainingTabs);
-
-    if (activeFileId === fileId) {
-      setActiveFileId(
-        remainingTabs.length > 0
-          ? remainingTabs[remainingTabs.length - 1]
-          : null
-      );
-    }
+    updateWorkspace({
+      openTabs: remainingTabs,
+      activeFileId:
+        activeFileId === fileId
+          ? remainingTabs.length > 0
+            ? remainingTabs[remainingTabs.length - 1]
+            : null
+          : activeFileId,
+    });
   }
 
   useEffect(() => {
@@ -216,16 +284,21 @@ const App = () => {
       findFileById(files, id)
     );
 
-    if (validTabs.length !== openTabs.length) {
-      setOpenTabs(validTabs);
-    }
+    const activeFileExists =
+      !activeFileId || findFileById(files, activeFileId);
 
-    if (activeFileId && !findFileById(files, activeFileId)) {
-      setActiveFileId(
-        validTabs.length > 0
-          ? validTabs[validTabs.length - 1]
-          : null
-      );
+    if (
+      validTabs.length !== openTabs.length ||
+      !activeFileExists
+    ) {
+      updateWorkspace({
+        openTabs: validTabs,
+        activeFileId: activeFileExists
+          ? activeFileId
+          : validTabs.length > 0
+            ? validTabs[validTabs.length - 1]
+            : null,
+      });
     }
   }, [files, openTabs, activeFileId]);
 
@@ -240,8 +313,6 @@ const App = () => {
     }
 
     setActiveProjectId(selectedProject.id);
-    setOpenTabs([]);
-    setActiveFileId(null);
     setIsDashboardOpen(false);
   }
 
@@ -257,8 +328,6 @@ const App = () => {
     setProjects((previous) => [...previous, newProject]);
 
     setActiveProjectId(newProject.id);
-    setOpenTabs([]);
-    setActiveFileId(null);
     setIsDashboardOpen(false);
   }
 
@@ -275,6 +344,7 @@ const App = () => {
       )
     );
   }
+
   function handleDeleteProject(projectId) {
     const remainingProjects = projects.filter(
       (project) => project.id !== projectId
@@ -282,16 +352,127 @@ const App = () => {
 
     setProjects(remainingProjects);
 
-    // If the active project is deleted, select another project
+    setWorkspaces((previous) => {
+      const updatedWorkspaces = { ...previous };
+      delete updatedWorkspaces[projectId];
+      return updatedWorkspaces;
+    });
+
     if (activeProjectId === projectId) {
       const nextProject = remainingProjects[0] || null;
-
       setActiveProjectId(nextProject?.id || null);
-
-      setOpenTabs([]);
-      setActiveFileId(null);
     }
   }
+
+
+  function handleRun(file) {
+    if (!file) return;
+
+    setOutput("");
+    setExecutionStatus("running");
+
+    const iframe = document.createElement("iframe");
+
+    iframe.setAttribute("sandbox", "allow-scripts");
+    iframe.style.display = "none";
+
+    iframe.srcdoc = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta
+          http-equiv="Content-Security-Policy"
+          content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval';"
+        />
+      </head>
+      <body>
+        <script>
+          window.addEventListener("message", (event) => {
+            if (event.data.type !== "RUN_CODE") return;
+
+            const logs = [];
+
+            function format(value) {
+              if (typeof value === "string") return value;
+
+              try {
+                const result = JSON.stringify(value);
+                return result === undefined ? String(value) : result;
+              } catch {
+                return String(value);
+              }
+            }
+
+            const customConsole = {
+              log: (...args) => logs.push(args.map(format).join(" ")),
+              info: (...args) => logs.push(args.map(format).join(" ")),
+              warn: (...args) => logs.push("[Warning] " + args.map(format).join(" ")),
+              error: (...args) => logs.push("[Error] " + args.map(format).join(" "))
+            };
+
+            try {
+              const execute = new Function("console", event.data.code);
+              execute(customConsole);
+
+              parent.postMessage({
+                type: "CODE_RESULT",
+                status: "success",
+                output: logs.join("\\n") || "Code executed successfully. No output."
+              }, "*");
+            } catch (error) {
+              parent.postMessage({
+                type: "CODE_RESULT",
+                status: "error",
+                output: logs.concat(error.name + ": " + error.message).join("\\n")
+              }, "*");
+            }
+          });
+        <\/script>
+      </body>
+    </html>
+  `;
+
+
+    const timeout = setTimeout(() => {
+      window.removeEventListener("message", handleMessage);
+      iframe.remove();
+
+      setOutput("Execution timed out.");
+      setExecutionStatus("error");
+    }, 3000);
+
+    function handleMessage(event) {
+      if (event.source !== iframe.contentWindow) return;
+      if (event.data?.type !== "CODE_RESULT") return;
+
+      clearTimeout(timeout);
+      window.removeEventListener("message", handleMessage);
+      iframe.remove();
+
+      setOutput(event.data.output);
+      setExecutionStatus(event.data.status);
+    }
+
+    window.addEventListener("message", handleMessage);
+
+    iframe.onload = () => {
+      iframe.contentWindow.postMessage(
+        {
+          type: "RUN_CODE",
+          code: file.content ?? "",
+        },
+        "*"
+      );
+    };
+
+    document.body.appendChild(iframe);
+  }
+
+  function handleClearOutput() {
+    setOutput("");
+    setExecutionStatus("idle");
+  }
+
   if (isDashboardOpen) {
     return (
       <ProjectDashboard
@@ -302,9 +483,12 @@ const App = () => {
       />
     );
   }
+
   return (
     <div className="h-screen w-full bg-black text-white p-3 flex flex-col gap-3 font-sans antialiased">
-      <Header onGoToDashboard={() => setIsDashboardOpen(true)}/>
+      <Header
+        onGoToDashboard={() => setIsDashboardOpen(true)}
+      />
 
       <div className="flex-1 grid grid-cols-[48px_240px_minmax(0,1fr)] gap-3 min-h-0">
         <ActivitySidebar />
@@ -326,9 +510,14 @@ const App = () => {
             onFileSelect={handleTabSelect}
             onCloseTab={handleCloseTab}
             onContentChange={updateFileContent}
+            onRun={handleRun}
           />
 
-          <BottomPanel />
+          <BottomPanel
+            output={output}
+            executionStatus={executionStatus}
+            onClear={handleClearOutput}
+          />
         </div>
       </div>
 
