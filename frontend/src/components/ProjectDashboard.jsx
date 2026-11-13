@@ -1,0 +1,322 @@
+import { useState } from "react";
+import { FolderCode, Plus, Clock3, Code2, X, Trash2, LogIn } from "lucide-react";
+
+function countFiles(items = []) {
+  let count = 0;
+  for (const item of items) {
+    if (item.type === "file") {
+      count++;
+    } else if (item.type === "folder" && item.children) {
+      count += countFiles(item.children);
+    }
+  }
+  return count;
+}
+
+function ProjectDashboard({
+  projects,
+  onOpenProject,
+  onCreateProject,
+  onDeleteProject,
+  onJoinProject,
+}) {
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [joinCodeOrUrl, setJoinCodeOrUrl] = useState("");
+  const [projectToDelete, setProjectToDelete] = useState(null);
+
+  function handleCreate(e) {
+    e.preventDefault();
+    const name = newProjectName.trim();
+    if (!name) return;
+    onCreateProject(name);
+    setNewProjectName("");
+    setShowNewModal(false);
+  }
+
+  function handleJoin(e) {
+    e.preventDefault();
+    const code = joinCodeOrUrl.trim();
+    if (!code) return;
+    if (onJoinProject) {
+      onJoinProject(code);
+    }
+    setJoinCodeOrUrl("");
+    setShowJoinModal(false);
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-[#0a0a0a] text-white p-8 md:p-12">
+      <div className="max-w-6xl mx-auto">
+        {}
+        <header className="flex items-center justify-between mb-20">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center">
+              <Code2 size={23} className="text-black" />
+            </div>
+            <span className="text-xl font-semibold tracking-tight">colab</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowJoinModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-neutral-700 text-gray-300 text-sm font-medium hover:text-white hover:bg-neutral-800 transition"
+            >
+              <LogIn size={16} />
+              Join Project
+            </button>
+
+            <button
+              onClick={() => setShowNewModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-200 transition"
+            >
+              <Plus size={17} />
+              New Project
+            </button>
+          </div>
+        </header>
+
+        {}
+        <section className="mb-14">
+          <p className="text-sm text-gray-500 mb-3">YOUR WORKSPACE</p>
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3">
+            Welcome back.
+          </h1>
+          <p className="text-gray-400 text-sm md:text-base">
+            Pick up where you left off, create a new workspace, or join a shared project.
+          </p>
+        </section>
+
+        {}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-lg font-medium">Recent Projects</h2>
+            <span className="text-xs text-gray-500">
+              {projects.length} {projects.length === 1 ? "project" : "projects"}
+            </span>
+          </div>
+
+          {projects.length === 0 ? (
+            <div className="border border-dashed border-[#303030] rounded-xl p-12 text-center">
+              <FolderCode size={32} className="mx-auto mb-4 text-gray-500" />
+              <p className="text-gray-300 mb-2">No projects yet</p>
+              <p className="text-sm text-gray-500 mb-5">
+                Create your first project or join an existing one to get started.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setShowJoinModal(true)}
+                  className="px-4 py-2 rounded-lg border border-neutral-700 text-gray-300 text-sm font-medium hover:text-white hover:bg-neutral-800 transition"
+                >
+                  Join with Code
+                </button>
+                <button
+                  onClick={() => setShowNewModal(true)}
+                  className="px-4 py-2 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-200 transition"
+                >
+                  Create Project
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  className="group border border-[#262626] bg-[#111111] rounded-xl p-5 hover:border-[#444444] transition"
+                >
+                  <div className="flex items-start justify-between mb-8">
+                    <div className="h-11 w-11 rounded-lg bg-[#1c1c1c] flex items-center justify-center">
+                      <FolderCode size={22} className="text-gray-300" />
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500">
+                        {project.updatedAt ? "Updated recently" : "Recently created"}
+                      </span>
+
+                      <button
+                        onClick={() => setProjectToDelete(project)}
+                        className="p-2 rounded-md text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition"
+                        title="Delete project"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <h3 className="text-base font-medium mb-2 truncate">
+                    {project.name}
+                  </h3>
+
+                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-5">
+                    <FolderCode size={14} />
+                    <span>{countFiles(project.files)} files</span>
+                    <span className="text-[#444444]">•</span>
+                    <Clock3 size={13} />
+                    <span>Project</span>
+                  </div>
+
+                  <button
+                    onClick={() => onOpenProject(project.id)}
+                    className="w-full rounded-lg border border-[#303030] py-2.5 text-sm text-gray-300 hover:bg-white hover:text-black hover:border-white transition"
+                  >
+                    Open Project
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <footer className="mt-20 border-t border-[#202020] pt-6">
+          <p className="text-xs text-gray-600">
+            CoLab — Your space to build together.
+          </p>
+        </footer>
+      </div>
+
+      {}
+      {showNewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Create New Project</h2>
+              <button
+                onClick={() => {
+                  setShowNewModal(false);
+                  setNewProjectName("");
+                }}
+                className="text-gray-500 hover:text-white transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreate}>
+              <label className="block text-sm text-gray-400 mb-2">
+                Project Name
+              </label>
+              <input
+                type="text"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="e.g. My Website"
+                autoFocus
+                className="w-full rounded-lg border border-[#303030] bg-[#0a0a0a] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-gray-500"
+              />
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewModal(false);
+                    setNewProjectName("");
+                  }}
+                  className="px-4 py-2.5 rounded-lg border border-[#303030] text-sm text-gray-300 hover:bg-[#1c1c1c] transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!newProjectName.trim()}
+                  className="px-4 py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Create Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {}
+      {showJoinModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold">Join a Project</h2>
+              <button
+                onClick={() => {
+                  setShowJoinModal(false);
+                  setJoinCodeOrUrl("");
+                }}
+                className="text-gray-500 hover:text-white transition"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleJoin}>
+              <label className="block text-sm text-gray-400 mb-2">
+                Invite Link or Project ID
+              </label>
+              <input
+                type="text"
+                value={joinCodeOrUrl}
+                onChange={(e) => setJoinCodeOrUrl(e.target.value)}
+                placeholder="e.g. http://localhost:5173/?project=... or project ID"
+                autoFocus
+                className="w-full rounded-lg border border-[#303030] bg-[#0a0a0a] px-4 py-3 text-sm text-white outline-none placeholder:text-gray-600 focus:border-gray-500"
+              />
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowJoinModal(false);
+                    setJoinCodeOrUrl("");
+                  }}
+                  className="px-4 py-2.5 rounded-lg border border-[#303030] text-sm text-gray-300 hover:bg-[#1c1c1c] transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!joinCodeOrUrl.trim()}
+                  className="px-4 py-2.5 rounded-lg bg-white text-black text-sm font-medium hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                >
+                  Join Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {}
+      {projectToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
+            <h2 className="text-lg font-semibold mb-3">Delete Project?</h2>
+            <p className="text-sm text-gray-400 mb-6">
+              Are you sure you want to delete{" "}
+              <span className="text-white font-medium">{projectToDelete.name}</span>?
+              This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setProjectToDelete(null)}
+                className="px-4 py-2.5 rounded-lg border border-[#303030] text-sm text-gray-300 hover:bg-[#1c1c1c] transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onDeleteProject(projectToDelete.id);
+                  setProjectToDelete(null);
+                }}
+                className="px-4 py-2.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition"
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ProjectDashboard;

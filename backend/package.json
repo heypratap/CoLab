@@ -2,7 +2,8 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"
@@ -10,11 +11,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@y/websocket-server": "^0.1.5",
     "cors": "^2.8.6",
     "express": "^5.3.0",
-    "socket.io": "^4.8.4"
+    "lib0": "^0.2.102",
+    "socket.io": "^4.8.4",
+    "ws": "^8.17.0",
+    "y-protocols": "^1.0.6",
+    "yjs": "^13.6.33"
   }
 }

@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', sans-serif;
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Yjs Monaco Remote Collaborator Cursor & Selection */
+.yRemoteSelection {
+  background-color: var(--yRemoteSelectionColor, rgba(56, 189, 248, 0.25));
+  opacity: 0.6;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid var(--yRemoteSelectionHeadColor, #38bdf8);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: ' ';
+  border: 3px solid var(--yRemoteSelectionHeadColor, #38bdf8);
+  border-radius: 2px;
+  left: -4px;
+  top: -5px;
+}
+
+/* Remote username hover / cursor label rendered by y-monaco */
+.yRemoteSelectionHead > div {
+  position: absolute;
+  top: -1.35em;
+  left: -2px;
+  font-size: 10px;
+  font-family: inherit;
+  font-weight: 600;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  user-select: none;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}

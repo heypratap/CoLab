@@ -277,7 +277,7 @@ const FileExplorer = ({files, setFiles, activeFile, onFileSelect, projectName, o
           placeholder={
             creationType === "file" ? "File name" : "Folder name"
           }
-          className="w-full min-w-0 bg-transparent border border-lime-400 outline-none text-white text-xs px-1"
+          className="w-full min-w-0 bg-transparent border border-gray-500 outline-none text-white text-xs px-1"
         />
       </div>
     );
@@ -326,7 +326,7 @@ const FileExplorer = ({files, setFiles, activeFile, onFileSelect, projectName, o
                   onKeyDown={handleRenameKeyDown}
                   onBlur={finishRenamingItem}
                   onClick={(event) => event.stopPropagation()}
-                  className="flex-1 min-w-0 bg-transparent border border-lime-400 outline-none text-white text-xs px-1"
+                  className="flex-1 min-w-0 bg-transparent border border-gray-500 outline-none text-white text-xs px-1"
                 />
               </>
             ) : (
@@ -382,7 +382,7 @@ const FileExplorer = ({files, setFiles, activeFile, onFileSelect, projectName, o
   }
 
   return (
-    <aside className="w-full h-full min-h-0 bg-[#181818] border border-neutral-800 rounded-lg flex flex-col text-gray-300">
+    <aside className="w-full h-full min-h-0 bg-[#111] border border-neutral-800 rounded-xl flex flex-col text-gray-300">
       <div className="flex items-center gap-1 px-2 py-2">
         <button
           onClick={() =>
@@ -412,7 +412,7 @@ const FileExplorer = ({files, setFiles, activeFile, onFileSelect, projectName, o
             }
             onKeyDown={handleProjectRenameKeyDown}
             onBlur={finishRenamingProject}
-            className="flex-1 min-w-0 bg-transparent border border-lime-400 outline-none text-white text-xs px-1"
+            className="flex-1 min-w-0 bg-transparent border border-gray-500 outline-none text-white text-xs px-1"
           />
         ) : (
           <span

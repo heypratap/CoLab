@@ -1,77 +1,104 @@
 # CoLab
 
-**A collaborative code editor for students and developers.**
+A real-time collaborative code editor with project synchronization and live named user cursors.
 
-CoLab is a project I'm building to create a coding environment where students and developers can write code, collaborate with others, and eventually work on projects together in real time.
 
-The goal is to build CoLab step by step while learning and applying real-world frontend and backend development concepts.
+## Table of Contents
+- [About](#about)
+- [Features](#features)
+- [Demo](#demo)
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Project Structure](#project-structure)
+- [Running Tests](#running-tests)
+- [Contributing](#contributing)
+- [License](#license)
+- [Contact](#contact)
+- [Acknowledgements](#acknowledgements)
 
-## Project Goals
+## About
+CoLab is a real-time collaborative code editor for developers and teams. It solves the problem of friction in remote pair programming by allowing anyone to share an entire project and folder tree via a single invite link. With live named cursors, Monaco Editor, and in-browser code execution, teammates can build and run code together seamlessly.
 
-- Build a clean, VS Code-inspired coding interface.
-- Integrate a browser-based code editor.
-- Add support for writing and editing code.
-- Enable users to create and manage coding projects.
-- Implement real-time collaboration between multiple users.
-- Explore secure code execution and scalable backend architecture.
+## Features
+- **Real-Time Editing**: Concurrent code editing with Monaco Editor & Yjs.
+- **Full Project Sharing**: Share whole folders and multiple files via invite link.
+- **Named Cursors**: See collaborators' names and colored flags on their cursors.
+- **Run Code**: Run JavaScript directly in the browser with live console output.
 
-## Tech Stack
+## Demo
+Live demo: `http://localhost:5173`
 
-### Current Setup
-- React
-- Vite
-- JavaScript
-- Monaco Editor
+## Getting Started
 
-### Planned Technologies
-- Node.js and Express
-- WebSockets / Socket.IO
-- Yjs (CRDT-based collaborative editing)
-- PostgreSQL
-- Docker for isolated code execution
-- Redis for scaling, if needed
+### Prerequisites
+- Node.js >= 18
+- npm or yarn
 
-*Planned technologies will be added as the project develops.*
+### Installation
 
-## Development Status
+# 1. Clone repository
+git clone https://github.com/heypratap/CoLab
+cd colab
 
-**Current stage:** Project setup and frontend development.
+# 2. Install dependencies
+cd backend && npm install
+cd ../frontend && npm install
+cd ..
 
-CoLab is currently in its early development stage. Features will be implemented incrementally, tested, and documented as the project grows.
 
-### Roadmap
+## Usage
 
-- [ ] Initialize the React project
-- [ ] Set up the initial project structure
-- [ ] Integrate Monaco Editor
-- [ ] Design the editor interface
-- [ ] Add language selection
-- [ ] Add a code output panel
-- [ ] Implement project and file management
-- [ ] Create coding rooms
-- [ ] Implement real-time collaboration
-- [ ] Add secure code execution
-- [ ] Test and deploy the application
+# Terminal 1: Run Backend (port 5000)
+cd backend && npm run dev
 
-## Learning Along the Way
+# Terminal 2: Run Frontend (port 5173)
+cd frontend && npm run dev
 
-I'm using this project to strengthen my development skills by learning through practical implementation.
 
-I'll document:
-- Features implemented
-- Concepts learned
-- Technical decisions
-- Challenges and solutions
-- Future improvements
+1. Open `http://localhost:5173` in your browser.
+2. Click **Invite** to copy your project link and share it with collaborators.
 
-## Long-Term Vision
+## Configuration
+| Variable | Description | Default | Required |
+| :--- | :--- | :--- | :--- |
+| `PORT` | Backend server port | `5000` | No |
 
-The long-term goal is to make CoLab a useful workspace where developers can code together, share ideas, and collaborate on programming projects without relying on screen sharing.
+## Project Structure
 
-## Development
+colab/
+├── backend/    # Express + Socket.io + Yjs WebSocket server          
+│   ├── server.js
+│   └── package.json
+├── frontend/         # React + Vite + Monaco Editor
+│   ├── src/
+│   │   ├── components/
+│   │   ├── services/
+│   │   └── App.jsx
+│   └── package.json
+└── README.md
 
-This project is being built incrementally, with a focus on understanding the code, writing maintainable software, and learning real-world engineering practices.
 
----
+## Running Tests
+cd frontend
+npm run dev
 
-**CoLab — Build together. Learn together.**
+
+## Contributing
+1. Fork the project
+2. Create your branch (`git checkout -b feature/new-feature`)
+3. Commit changes (`git commit -m "Add new feature"`)
+4. Push to branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
+
+## License
+Distributed under the MIT License.
+
+## Contact
+Project Link: [https://github.com/heypratap/CoLab](https://github.com/heypratap/CoLab)
+
+## Acknowledgements
+- [Yjs](https://github.com/yjs/yjs)
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+- [Socket.io](https://socket.io/)
+- [Vite](https://vite.dev/)
