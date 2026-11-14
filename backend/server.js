@@ -7,7 +7,7 @@ import { setupWSConnection } from "./y-server.js";
 
 const app = express();
 const server = http.createServer(app);
-const PORT = 5001;
+const PORT = process.env.PORT || 5002;
 
 app.use(cors());
 app.use(express.json());
@@ -17,6 +17,7 @@ const io = new Server(server, {
     origin: "*",
     methods: ["GET", "POST"],
   },
+  destroyUpgrade: false,
 });
 
 app.get("/", (req, res) => {
@@ -164,11 +165,17 @@ server.on("upgrade", (request, socket, head) => {
 });
 
 wss.on("connection", (ws, req) => {
-  const roomName = (req.url || "").replace(/^\/yjs\/?/, "").split("?")[0] || "default";
+  const raw = (req.url || "").replace(/^\/yjs\/?/, "").split("?")[0] || "default";
+  let roomName = "default";
+  try {
+    roomName = decodeURIComponent(raw);
+  } catch {
+    roomName = raw;
+  }
   setupWSConnection(ws, req, { docName: roomName });
 });
 
-server.listen(PORT, () => {
-  console.log("Server running at http://localhost:" + PORT);
-  console.log("Yjs WebSocket ready at ws://localhost:" + PORT + "/yjs");
+server.listen(PORT, "0.0.0.0", () => {
+  console.log("Server running on port " + PORT);
+  console.log("Yjs WebSocket ready at /yjs");
 });

@@ -49,13 +49,13 @@ function ProjectDashboard({
   return (
     <div className="min-h-screen w-full bg-[#0a0a0a] text-white p-8 md:p-12">
       <div className="max-w-6xl mx-auto">
-        {}
+        { }
         <header className="flex items-center justify-between mb-20">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center">
               <Code2 size={23} className="text-black" />
             </div>
-            <span className="text-xl font-semibold tracking-tight">colab</span>
+            <span className="text-xl font-semibold tracking-tight">CoLab</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -77,7 +77,7 @@ function ProjectDashboard({
           </div>
         </header>
 
-        {}
+        { }
         <section className="mb-14">
           <p className="text-sm text-gray-500 mb-3">YOUR WORKSPACE</p>
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight mb-3">
@@ -88,7 +88,7 @@ function ProjectDashboard({
           </p>
         </section>
 
-        {}
+        { }
         <section>
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-medium">Recent Projects</h2>
@@ -177,7 +177,7 @@ function ProjectDashboard({
         </footer>
       </div>
 
-      {}
+      { }
       {showNewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
@@ -231,7 +231,7 @@ function ProjectDashboard({
         </div>
       )}
 
-      {}
+      { }
       {showJoinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">
@@ -285,7 +285,7 @@ function ProjectDashboard({
         </div>
       )}
 
-      {}
+      { }
       {projectToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
           <div className="w-full max-w-md rounded-xl border border-[#303030] bg-[#111111] p-6 shadow-2xl">

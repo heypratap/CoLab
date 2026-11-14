@@ -1,9 +1,6 @@
 import { io } from "socket.io-client";
+import { SOCKET_URL } from "./config";
 
-const host = typeof window !== "undefined" && window.location.hostname
-  ? window.location.hostname
-  : "localhost";
-
-export const socket = io(`http://${host}:5000`, {
+export const socket = io(SOCKET_URL, {
   autoConnect: false,
 });

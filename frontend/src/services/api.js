@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5000";
+import { API_URL } from "./config";
 
 export async function checkServerHealth() {
   const response = await fetch(`${API_URL}/api/health`);

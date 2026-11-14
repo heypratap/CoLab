@@ -48,6 +48,21 @@ function UsernameModal({ onSubmit }) {
   );
 }
 
+function generateProjectId() {
+  const rand = Math.random().toString(36).substring(2, 8);
+  return `proj-${rand}`;
+}
+
+function getInviteProjectId() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("invite")?.trim() || null;
+  } catch {
+    // ignore invalid URL
+    return null;
+  }
+}
+
 function App() {
 
   const [username, setUsername] = useState(() => {
@@ -91,14 +106,7 @@ function App() {
       .catch((err) => console.log("Backend offline:", err));
   }, []);
 
-  const inviteProjectId = (() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      return params.get("project")?.trim() || params.get("invite")?.trim() || null;
-    } catch {
-      return null;
-    }
-  })();
+  const inviteProjectId = getInviteProjectId();
 
   const [projects, setProjects] = useState(() => {
     let saved = [];
@@ -109,18 +117,34 @@ function App() {
         if (Array.isArray(parsed)) saved = parsed;
       }
     } catch {
-
+      saved = [];
     }
 
     if (saved.length === 0) {
       saved = [
         {
-          id: "project-default",
+          id: generateProjectId(),
           name: "My Project",
           files: [],
           createdAt: new Date().toISOString(),
         },
       ];
+    } else {
+      let migrated = false;
+      saved = saved.map((p) => {
+        if (p.id === "project-default") {
+          migrated = true;
+          return { ...p, id: generateProjectId() };
+        }
+        return p;
+      });
+      if (migrated) {
+        try {
+          localStorage.setItem("colab-projects", JSON.stringify(saved));
+        } catch {
+          /* storage full — ignore */
+        }
+      }
     }
 
     if (inviteProjectId && !saved.some((p) => p.id === inviteProjectId)) {
@@ -130,6 +154,11 @@ function App() {
         files: [],
         createdAt: new Date().toISOString(),
       });
+      try {
+        localStorage.setItem("colab-projects", JSON.stringify(saved));
+      } catch {
+        /* storage full — ignore */
+      }
     }
 
     return saved;
@@ -137,7 +166,11 @@ function App() {
 
   const [activeProjectId, setActiveProjectId] = useState(() => {
     if (inviteProjectId) return inviteProjectId;
-    return localStorage.getItem("colab-active-project") || "project-default";
+    const stored = localStorage.getItem("colab-active-project");
+    if (stored && stored !== "project-default") {
+      return stored;
+    }
+    return projects[0]?.id || "project-1";
   });
 
   const [isDashboardOpen, setIsDashboardOpen] = useState(() => {
@@ -162,6 +195,8 @@ function App() {
     return null;
   }
 
+  const [saveStatus, setSaveStatus] = useState("Saved");
+
   function updateFiles(updater) {
     setSaveStatus("Saving");
     setProjects((prev) => {
@@ -183,16 +218,20 @@ function App() {
     });
   }
 
+  const lastJoinedProjectRef = useRef(null);
+
   useEffect(() => {
-    if (!activeProject || !username) return;
+    if (!activeProjectId || !username) return;
+    const joinKey = `${activeProjectId}-${username}`;
+    if (lastJoinedProjectRef.current === joinKey) return;
+    lastJoinedProjectRef.current = joinKey;
 
     socket.emit("join-project", {
-      projectId: activeProject.id,
+      projectId: activeProjectId,
       username,
       projectData: activeProject,
     });
-
-  }, [activeProject?.id, username]);
+  }, [activeProjectId, username, activeProject]);
 
   useEffect(() => {
     function onSyncProject(remoteProject) {
@@ -211,8 +250,6 @@ function App() {
         }
         return [remoteProject, ...prev];
       });
-      setActiveProjectId(remoteProject.id);
-      setIsDashboardOpen(false);
     }
 
     function onProjectFilesUpdated({ projectId, files: newFiles }) {
@@ -243,7 +280,7 @@ function App() {
       socket.off("project-files-updated", onProjectFilesUpdated);
       socket.off("request-project-state", onRequestProjectState);
     };
-  }, [activeProject]);
+  }, []);
 
   const [workspaces, setWorkspaces] = useState(() => {
     try {
@@ -265,7 +302,6 @@ function App() {
     ? currentWorkspace.activeFileId
     : openTabs[openTabs.length - 1] || null;
 
-  const [saveStatus, setSaveStatus] = useState("Saved");
   const [output, setOutput] = useState("");
   const [executionStatus, setExecutionStatus] = useState("idle");
 
@@ -286,13 +322,13 @@ function App() {
   const lastFileRoomRef = useRef(null);
 
   useEffect(() => {
-    if (!username || !activeFileId) return;
-    const roomId = "file-" + activeFileId;
+    if (!username || !activeFileId || !activeProjectId) return;
+    const roomId = `${activeProjectId}-${activeFileId}`;
     if (lastFileRoomRef.current !== roomId) {
       lastFileRoomRef.current = roomId;
       socket.emit("join-file-room", { roomId, username });
     }
-  }, [activeFileId, username]);
+  }, [activeProjectId, activeFileId, username]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -313,7 +349,7 @@ function App() {
     try {
       localStorage.setItem("colab-workspaces", JSON.stringify(workspaces));
     } catch {
-
+      /* storage full — ignore */
     }
   }, [workspaces]);
 
@@ -345,6 +381,15 @@ function App() {
     });
   }
 
+  function handleGoToDashboard() {
+    setIsDashboardOpen(true);
+    try {
+      window.history.pushState({}, "", window.location.pathname);
+    } catch {
+      /* ignore */
+    }
+  }
+
   function handleOpenProject(projectId) {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return;
@@ -356,7 +401,7 @@ function App() {
 
   function handleCreateProject(name) {
     const newProject = {
-      id: crypto.randomUUID(),
+      id: generateProjectId(),
       name: name,
       files: [],
       createdAt: new Date().toISOString(),
@@ -373,12 +418,15 @@ function App() {
     if (!linkOrId?.trim()) return;
     let targetId = linkOrId.trim();
     try {
-      if (targetId.includes("project=")) {
+      if (targetId.startsWith("http://") || targetId.startsWith("https://")) {
         const parsedUrl = new URL(targetId);
-        targetId = parsedUrl.searchParams.get("project") || targetId;
+        const fromParams = parsedUrl.searchParams.get("project") || parsedUrl.searchParams.get("invite");
+        if (fromParams) {
+          targetId = fromParams.trim();
+        }
       }
     } catch {
-
+      /* not a valid URL — use as-is */
     }
 
     setProjects((prev) => {
@@ -440,41 +488,41 @@ function App() {
     iframe.setAttribute("sandbox", "allow-scripts");
     iframe.style.display = "none";
 
-    iframe.srcdoc = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval';" />
-      </head>
-      <body>
-        <script>
-          window.addEventListener("message", (e) => {
-            if (e.data.type !== "RUN_CODE") return;
-            const outputList = [];
-            const safeConsole = {
-              log: (...args) => outputList.push(args.join(" ")),
-              info: (...args) => outputList.push(args.join(" ")),
-              warn: (...args) => outputList.push("[Warning] " + args.join(" ")),
-              error: (...args) => outputList.push("[Error] " + args.join(" ")),
-            };
-            try {
-              const runFn = new Function("console", e.data.code);
-              runFn(safeConsole);
-              parent.postMessage({ type: "CODE_RESULT", status: "success", output: outputList.join("\\n") || "Done. No output." }, "*");
-            } catch (err) {
-              parent.postMessage({ type: "CODE_RESULT", status: "error", output: outputList.concat(err.name + ": " + err.message).join("\\n") }, "*");
-            }
-          });
-        </script>
-      </body>
-    </html>`;
+    iframe.srcdoc = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <script>
+      window.addEventListener("message", function(e) {
+        if (e.data.type !== "RUN_CODE") return;
+        var outputList = [];
+        var safeConsole = {
+          log: function() { var args = Array.from(arguments); outputList.push(args.join(" ")); },
+          info: function() { var args = Array.from(arguments); outputList.push(args.join(" ")); },
+          warn: function() { var args = Array.from(arguments); outputList.push("[Warning] " + args.join(" ")); },
+          error: function() { var args = Array.from(arguments); outputList.push("[Error] " + args.join(" ")); },
+          clear: function() { outputList = []; }
+        };
+        try {
+          var runFn = new Function("console", e.data.code);
+          runFn(safeConsole);
+          parent.postMessage({ type: "CODE_RESULT", status: "success", output: outputList.join("\\n") || "Done. No output." }, "*");
+        } catch (err) {
+          parent.postMessage({ type: "CODE_RESULT", status: "error", output: outputList.concat(err.name + ": " + err.message).join("\\n") }, "*");
+        }
+      });
+    </script>
+  </body>
+</html>`;
 
     const timer = setTimeout(() => {
       window.removeEventListener("message", onMessage);
       iframe.remove();
       setOutput("Code execution timed out.");
       setExecutionStatus("error");
-    }, 3000);
+    }, 5000);
 
     function onMessage(e) {
       if (e.source !== iframe.contentWindow) return;
@@ -520,7 +568,7 @@ function App() {
   return (
     <div className="h-screen w-full bg-black text-white p-3 flex flex-col gap-3 font-sans antialiased">
       <Header
-        onGoToDashboard={() => setIsDashboardOpen(true)}
+        onGoToDashboard={handleGoToDashboard}
         onlineUsers={onlineUsers}
         username={username}
         activeProject={activeProject}
@@ -567,6 +615,7 @@ function App() {
             }}
             onRun={handleRunCode}
             username={username}
+            projectId={activeProject?.id}
           />
 
           <BottomPanel

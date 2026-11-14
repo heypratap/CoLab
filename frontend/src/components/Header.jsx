@@ -12,7 +12,7 @@ function Header({
   const [hasCopiedCode, setHasCopiedCode] = useState(false);
 
   const inviteLink = activeProject?.id
-    ? window.location.origin + "/?project=" + activeProject.id
+    ? window.location.origin + "/?invite=" + activeProject.id
     : "";
 
   function copyInviteLink() {
@@ -38,12 +38,16 @@ function Header({
   return (
     <>
       <header className="bg-[#111] border border-neutral-800 rounded-xl h-14 flex items-center justify-between px-4 text-sm font-medium shrink-0">
-        {}
-        <div className="flex items-center gap-3">
+        { }
+        <div
+          onClick={onGoToDashboard}
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition"
+          title="Go to Dashboard"
+        >
           <div className="h-7 w-7 rounded-lg bg-white flex items-center justify-center">
             <Code2 size={15} className="text-black" />
           </div>
-          <span className="text-white font-semibold tracking-tight">colab</span>
+          <span className="text-white font-semibold tracking-tight">CoLab</span>
           {activeProject?.name && (
             <span className="text-xs text-gray-500 font-normal border-l border-neutral-800 pl-3">
               {activeProject.name}
@@ -51,27 +55,30 @@ function Header({
           )}
         </div>
 
-        {}
+        { }
         {onlineUsers.length > 0 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             <div className="flex -space-x-2">
               {onlineUsers.slice(0, 5).map((user) => (
                 <div
                   key={user.id}
                   title={user.username}
-                  className="h-7 w-7 rounded-full bg-neutral-700 border border-neutral-900 flex items-center justify-center text-xs font-medium text-white select-none"
+                  style={{ backgroundColor: user.color || "#38bdf8" }}
+                  className="h-7 w-7 rounded-full border-2 border-black flex items-center justify-center text-xs font-bold text-black select-none shadow-sm"
                 >
                   {user.username.charAt(0).toUpperCase()}
                 </div>
               ))}
             </div>
-            <span className="text-xs text-gray-400">
-              {onlineUsers.length === 1 ? "1 person" : onlineUsers.length + " people"} in this file
+            <span className="text-xs text-gray-300">
+              {onlineUsers.length === 1
+                ? `${onlineUsers[0]?.username} (you)`
+                : onlineUsers.map((u) => u.username).join(", ")}
             </span>
           </div>
         )}
 
-        {}
+        { }
         <div className="flex items-center gap-2.5">
           {activeProject && (
             <button
@@ -101,7 +108,7 @@ function Header({
         </div>
       </header>
 
-      {}
+      { }
       {showInviteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4">
           <div className="w-full max-w-md border border-neutral-800 bg-[#111] rounded-2xl p-6 shadow-2xl">
@@ -120,7 +127,7 @@ function Header({
             </p>
 
             <div className="space-y-4">
-              {}
+              { }
               <div>
                 <label className="block text-xs text-gray-500 mb-1.5">Invite Link</label>
                 <div className="flex items-center gap-2">
@@ -139,7 +146,7 @@ function Header({
                 </div>
               </div>
 
-              {}
+              { }
               <div>
                 <label className="block text-xs text-gray-500 mb-1.5">Project ID Code</label>
                 <div className="flex items-center gap-2">

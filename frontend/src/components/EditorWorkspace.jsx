@@ -12,6 +12,7 @@ function EditorWorkspace({
   onContentChange,
   onRun,
   username,
+  projectId,
 }) {
   const [editor, setEditor] = useState(null);
   const monacoRef = useRef(null);
@@ -73,7 +74,7 @@ function EditorWorkspace({
 
     const cleanup = connectEditor({
       editor,
-      roomName: `file-${activeFileId}`,
+      roomName: `${projectId || "project"}-${activeFileId}`,
       username: username || "Anonymous",
       initialContent: activeFileContent,
       onContentChange: (content) => {
@@ -84,8 +85,7 @@ function EditorWorkspace({
     return () => {
       cleanup();
     };
-
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, activeFileId, username]);
 
   return (
